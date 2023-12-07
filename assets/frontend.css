@@ -1,0 +1,9 @@
+.svsw-swatch-content .svsw-swatch.svsw-pro-selected{
+    border: 2px solid #108389;
+}
+.svsw-attr-wrap .svsw-swatch-content .svsw-stockout {
+    border: 2px solid red;
+}
+.woocommerce-variation-price,.woocommerce-variation-availability{
+    display: none;
+}
