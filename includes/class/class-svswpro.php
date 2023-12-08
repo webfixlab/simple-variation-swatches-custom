@@ -18,13 +18,12 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			add_action( 'svsw_after_atts', array( $this, 'pack_info' ), 10, 2 );
 			add_action( 'svsw_after_atts', array( $this, 'variation_data' ), 11, 2 );
 
+			// Cart Setion.
 			add_action( 'wp_ajax_svsw_pro_add_to_cart', array( $this, 'add_to_cart' ) );
 			add_action( 'wp_ajax_nopriv_svsw_pro_add_to_cart', array( $this, 'add_to_cart' ) ); // For logged out users
-			
 
 			add_action( 'wp_ajax_svsw_clear_cart', array( $this, 'clear_cart' ) );
 			add_action( 'wp_ajax_nopriv_svsw_clear_cart', array( $this, 'clear_cart' ) );
-	
 
 		}
 
@@ -198,76 +197,56 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 				'request' => $_POST
 			));
 		}
-		public function clear_cart_backup() {
-			
-			WC()->cart->empty_cart();
-
-			wp_send_json(array(
-				'status' => 'done'
-			));
-		}
-
-
-
-
 		public function clear_cart() {
+
+			// Sanitize and validate cart key
 			$cart_key = isset($_POST['cart_key']) ? sanitize_key($_POST['cart_key']) : '';
-		
 			if (empty($cart_key)) {
-				wp_send_json(['msg' => 'No key found', 'key' => $cart_key]);
+				wp_send_json_error(['msg' => 'No key found', 'key' => $cart_key]);
+				return;
 			}
 		
+			// Check if WC cart is initialized
+			if (is_null(WC()->cart)) {
+				wp_send_json_error(['msg' => 'Cart not initialized']);
+				return;
+			}
+		
+			// Get cart items
 			$cart_items = WC()->cart->get_cart();
+		
+			// Find product ID and size for given cart key
 			$product_id = '';
-			$size       = '';
-		
-			foreach ($cart_items as $key => $item) {
-				if ($cart_key === $key) {
-					$product_id = $item['product_id'];
-					$size = $item['variation']['attribute_pa_size'] ?? '';
-					break;
-				}
+			$size = '';
+			if (isset($cart_items[$cart_key])) {
+				$product_id = $cart_items[$cart_key]['product_id'];
+				$size = $cart_items[$cart_key]['variation']['attribute_pa_size'] ?? '';
 			}
 		
-			if (empty($product_id)) {
-				wp_send_json(['msg' => 'Product id not found', 'key' => $cart_key, 'size' => $size]);
+			// Check if product ID and size are valid
+			if (empty($product_id) || empty($size)) {
+				wp_send_json_error(['msg' => 'Invalid product ID or size', 'id' => $product_id, 'size' => $size]);
+				return;
 			}
 		
-			$pairs = get_post_meta($product_id, '_swatch_attribute_quantity_pairs', true) ?: [];
-			$data  = [];
-			foreach ($pairs as $pair) {
-				if (isset($pair['name']) && isset($pair['qty'])) {
-					$data['attribute_' . $pair['name']] = $pair['qty'];
-				}
+			// Retrieve and check pairs
+			$pairs = get_post_meta($product_id, '_swatch_attribute_quantity_pairs', true);
+			if (empty($pairs)) {
+				wp_send_json_error(['msg' => 'Package data not found', 'id' => $product_id, 'pairs' => $pairs, 'size' => $size]);
+				return;
 			}
-		
-			$count = [];
-			foreach ($cart_items as $key => $item) {
-				if ($item['product_id'] !== $product_id || $key === $cart_key || !isset($item['variation'])) continue;
-		
-				foreach ($item['variation'] as $var_key => $var_value) { 
-					if ($var_key === 'attribute_pa_size' && $var_value !== $size) continue;
-					$count[$var_key][] = $var_value;
-				}
-			}
-		
-			if (empty($count)) {
-				wp_send_json(['msg' => 'No attribute data found in the cart', 'id' => $product_id, 'pair_data' => $data, 'cart_atts' => $count, 'size' => $size]);
-			}
-		
-			$if_delete_all = array_reduce(array_keys($count), function ($carry, $key) use ($data, $count) {
-				return $carry || (count($count[$key]) < $data[$key]);
-			}, false);
-		
-			foreach ($cart_items as $key => $item) {
-				if ($if_delete_all || $key === $cart_key) {
+
+			foreach( $cart_items as $key => $item ){
+				// Match with same cart key as given.
+				if( $product_id !== $item['product_id'] ) continue;
+			
+				if( $size === $item['variation']['attribute_pa_size'] ){
 					WC()->cart->remove_cart_item($key);
 				}
-			}
-		
-			wp_send_json(['id' => $product_id, 'pair_data' => $data, 'cart_atts' => $count, 'if_delete_all' => $if_delete_all, 'size' => $size]);
+			}			
+
+			wp_send_json_success(['msg' => 'Deleted successfully']);
 		}
-		
 	}
 }
 

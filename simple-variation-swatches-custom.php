@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Simple Variation Swatches for WooCommerce PRO
+Plugin Name: Simple Variation Swatches for WooCommerce Custom
 Description: A truly lightweight EASY to use and super FAST WooCommerce variation swatches solution to replace default variation dropdown with button, color, image & radio button fields.
 Author: WebFix Lab
 Author URI: https://webfixlab.com/
@@ -17,7 +17,7 @@ Text Domain: simple-variation-swatches
 defined( 'ABSPATH' ) || exit;
 
 // plugin path
-define( 'SVSWP', __FILE__ ); // single product total
+define( 'SVSWP', __FILE__ );
 define( 'SVSWP_PATH', plugin_dir_path( SVSWP ) );
 
 include( SVSWP_PATH . 'includes/core-data.php');

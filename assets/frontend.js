@@ -37,12 +37,12 @@
 
 
         $( 'input[name="quantity"]' ).on( 'click', function(){
-            calculateTotal();
+            setTotal();
         });
         $( 'input[name="quantity"]' ).on( 'input', function(){
-            calculateTotal();
+            setTotal();
         });
-        function calculateTotal(){
+        function setTotal(){
             var qty = parseInt($('input[name="quantity"]').val());
             var total = parseFloat($('#dynamic-price').data('price'));
 
@@ -58,7 +58,7 @@
         }
 
         
-        function static_size( item ){
+        function unselectSizes( item ){
             var wrap = item.closest( '.svsw-wrap' );
 
             let $pack = wrap.find('.svspro-pack');
@@ -96,7 +96,7 @@
         $( '.svsw-swatch' ).on( 'click', function(e){
             $(this).closest('.svsw-wrap').find('.svsw-swatch.svsw-selected').removeClass('svsw-selected');
 
-            if( $(this).hasClass( 'svspro-freeze' ) ){
+            if( $(this).hasClass( 'svspro-freeze' ) || $(this).hasClass( 'svsw-stockout' ) ){
                 return;
             }
 
@@ -105,7 +105,7 @@
             $(this).removeClass( 'svsw-stockout' );
             clearFreeze();
         
-            static_size( $(this) );
+            unselectSizes( $(this) );
             $(this).toggleClass( 'svsw-pro-selected' );            
         
             multiswatch();
@@ -136,7 +136,7 @@
                     var tmpTerm = $(this).data( 'term' );
 
                     var data = {};
-                    data[ att] = tmpTerm;
+                    data[ att ] = tmpTerm;
                     data[ att_name ] = term;
 
                     var item = isCombinationInStock( data, 'variation_id' );
@@ -145,6 +145,9 @@
                         // Not in stock
                         if( ! $(this).hasClass( 'svsw-stockout' ) ){
                             $(this).addClass( 'svsw-stockout' );
+                        }
+                        if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                            $( this ).removeClass( 'svsw-pro-selected' );
                         }
                     }else{
                         // In stock
@@ -392,6 +395,8 @@
 
 
         // Cart section.
+        $( '.quantity input[type="number"]' ).prop( 'disabled', true );
+
         $( '.single_add_to_cart_button' ).on( 'click', function(e){
             e.preventDefault();
 
@@ -451,14 +456,18 @@
                     cart_key: key
                 },
                 success: function(response) {
-                    console.log( 'response', response );
-                    if( response.msg ){
-                        $( document ).find( '.svsw-cart-notice' ).text( response.msg );
-                    }else{
+                    console.log('Success:', response);
+                    if(response.msg) {
+                        $(document).find('.svsw-cart-notice').text(response.msg);
+                    } else {
                         location.reload();
                     }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.log('Error:', textStatus, errorThrown);
                 }
             });
+
         }
         function cart_item_key( url ){
             var queryString = url.split('?')[1]; // Extract query string
