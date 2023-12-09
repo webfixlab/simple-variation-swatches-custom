@@ -4,9 +4,6 @@
 .svsw-attr-wrap .svsw-swatch-content .svsw-stockout {
     border: 2px solid red;
 }
-.woocommerce-variation-price,.woocommerce-variation-availability{
-    display: none;
-}
 .single-product label.attr-name {
     font-size: 12px;
     text-transform: uppercase;

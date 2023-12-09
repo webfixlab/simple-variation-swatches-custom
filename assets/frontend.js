@@ -1,9 +1,16 @@
 (function($) {
     $(document).ready(function(){
 
-        $( '.single_add_to_cart_button' ).prop( 'disabled', true );
-
-        function on_load_freeze(){  
+        freezeDesigns();
+        onLoadStuffs();
+        
+        // Disable cart button.
+        function onLoadStuffs(){
+            if( ifPackExists() ){
+                $( '.single_add_to_cart_button' ).prop( 'disabled', true );
+            }
+        }
+        function freezeDesigns(){  
             $( '.svsw-wrap' ).each(function(){
                 let $pack = $(this).find('.svspro-pack');
                 if (!$pack.length) {
@@ -33,13 +40,40 @@
                 // $( '.svspro-pack-info' ).text( '' )
             });
         }
-        on_load_freeze();
+        function ifPackExists(){
+            var hasPackData = false;
+
+            $( '.svsw-wrap' ).each(function(){
+                let $pack = $(this).find('.svspro-pack');
+                if (!$pack.length) {
+                    return true;
+                }
+        
+                let att = $pack.data( 'att' );
+                let qty = parseInt($pack.data( 'qty' ), 10);
+                if (!qty || !att || att == 'pa_size' ) {
+                    return true;
+                }
+
+                hasPackData = true;
+            });
+
+            return hasPackData;
+        }
 
 
         $( 'input[name="quantity"]' ).on( 'click', function(){
+            if( ! ifPackExists() ){
+                return;
+            }
+
             setTotal();
         });
         $( 'input[name="quantity"]' ).on( 'input', function(){
+            if( ifPackExists() ){
+                return;
+            }
+
             setTotal();
         });
         function setTotal(){
@@ -48,11 +82,8 @@
 
             total = qty * total;
 
-            console.log( 'total', total );
-            
             // Format the total to a fixed-point notation with 2 decimal places
             var formattedTotal = parseFloat(total).toFixed(2);
-            console.log( 'total formatted', formattedTotal );
 
             $('#dynamic-price').text(formattedTotal);
         }
@@ -389,19 +420,18 @@
             $( '.single_add_to_cart_button' ).prop( 'disabled', true );
             $( document ).find( '.svspro-cart-added' ).remove();
 
-            on_load_freeze();
+            freezeDesigns();
         });
-
-
-
-        // Cart section.
-        $( '.quantity input[type="number"]' ).prop( 'disabled', true );
-
+        
         $( '.single_add_to_cart_button' ).on( 'click', function(e){
-            e.preventDefault();
+            
+            if( ifPackExists() ){
+                e.preventDefault();
+    
+                var variation_ids = process_data( 'variation_id', true );
+                add_to_cart( variation_ids );
+            }
 
-            var variation_ids = process_data( 'variation_id', true );
-            add_to_cart( variation_ids );
         });
         function add_to_cart( ids ){
             var qty = $( 'input[name="quantity"]' ).val();
@@ -432,19 +462,44 @@
             });
         }
 
+
+
+        // Cart section.
+        if( ifCartPackExists() ){
+            $( '.quantity input[type="number"]' ).prop( 'disabled', true );
+        }
+
+        function ifCartPackExists(){
+
+            var data = $( '#svsw_pairs' ).data( 'pairs_data' );
+
+            if( ! data ){
+                return false;
+            }
+
+            return true;
+        }
+
         $( '.product-remove a.remove' ).on( 'click', function(e) {
+            if( ! ifCartPackExists() ){
+                return;
+            }
+
             e.preventDefault();
             e.stopPropagation();
         
-            var confirmationMessage = "Removing this may also remove related package items. Proceed to delete?";
-            if (confirm(confirmationMessage)) {
+            var msg = "Removing this may also remove related package items. Proceed to delete?";
+            if (confirm(msg)) {
+
                 $( '.woocommerce-notices-wrapper' ).append( '<span calss="svsw-cart-notice">Deleting...</span>' );
+                
                 $( '.product-remove a.remove' ).each(function(){
                     $(this).prop( 'disabled', true );
                 });
+
                 clear_cart_ajax($(this));
             }
-        });        
+        });
         function clear_cart_ajax( item ){
             var key = cart_item_key( item.attr( 'href' ) );
 
@@ -456,7 +511,7 @@
                     cart_key: key
                 },
                 success: function(response) {
-                    console.log('Success:', response);
+                    // console.log('Success:', response);
                     if(response.msg) {
                         $(document).find('.svsw-cart-notice').text(response.msg);
                     } else {

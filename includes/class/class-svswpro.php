@@ -25,6 +25,8 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			add_action( 'wp_ajax_svsw_clear_cart', array( $this, 'clear_cart' ) );
 			add_action( 'wp_ajax_nopriv_svsw_clear_cart', array( $this, 'clear_cart' ) );
 
+			add_action( 'woocommerce_before_cart', array( $this, 'cart_pairs_data' ) );
+
 		}
 
 
@@ -162,6 +164,12 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 				return;
 			}
 
+			$pairs = get_post_meta(  $product->get_id(), '_swatch_attribute_quantity_pairs', true );
+
+			if( empty( $pairs ) ){
+				return;
+			}
+
 			$variations = $product->get_available_variations();
 
 			// Encode the variations data as JSON
@@ -170,6 +178,11 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			// Output the data attribute in your form tag
 			?>
 			<div id="svsw_variation_data" data-product_variations="<?php echo esc_attr($variations_json); ?>"></div>
+			<style>
+				.woocommerce-variation-price,.woocommerce-variation-availability{
+					display: none;
+				}
+			</style>
 			<?php
 
 		}
@@ -203,13 +216,11 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			$cart_key = isset($_POST['cart_key']) ? sanitize_key($_POST['cart_key']) : '';
 			if (empty($cart_key)) {
 				wp_send_json_error(['msg' => 'No key found', 'key' => $cart_key]);
-				return;
 			}
 		
 			// Check if WC cart is initialized
 			if (is_null(WC()->cart)) {
 				wp_send_json_error(['msg' => 'Cart not initialized']);
-				return;
 			}
 		
 			// Get cart items
@@ -225,28 +236,74 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 		
 			// Check if product ID and size are valid
 			if (empty($product_id) || empty($size)) {
+				WC()->cart->remove_cart_item( $cart_key );
 				wp_send_json_error(['msg' => 'Invalid product ID or size', 'id' => $product_id, 'size' => $size]);
-				return;
 			}
 		
 			// Retrieve and check pairs
 			$pairs = get_post_meta($product_id, '_swatch_attribute_quantity_pairs', true);
 			if (empty($pairs)) {
+
+				WC()->cart->remove_cart_item( $cart_key );
 				wp_send_json_error(['msg' => 'Package data not found', 'id' => $product_id, 'pairs' => $pairs, 'size' => $size]);
-				return;
+
 			}
+
+			$pack_deleted = false;
 
 			foreach( $cart_items as $key => $item ){
 				// Match with same cart key as given.
 				if( $product_id !== $item['product_id'] ) continue;
+				
+				if( ! isset( $item['variation'] ) || ! isset( $item['variation']['attribute_pa_size'] ) ) continue;
 			
 				if( $size === $item['variation']['attribute_pa_size'] ){
 					WC()->cart->remove_cart_item($key);
 				}
-			}			
+				
+				$pack_deleted = true;
+			}
+			
+			if( ! $pack_deleted ){
+				WC()->cart->remove_cart_item( $cart_key );
+			}
 
 			wp_send_json_success(['msg' => 'Deleted successfully']);
 		}
+		public function cart_pairs_data() {
+			
+			// Check if the cart is empty
+			if (WC()->cart->is_empty()) {
+				return;
+			}
+
+			$data = array();
+
+			foreach (WC()->cart->get_cart() as $cart_item) {
+				// Get product ID
+				$product_id = $cart_item['product_id'];
+
+				// Get post meta
+				$pairs = get_post_meta($product_id, '_swatch_attribute_quantity_pairs', true);
+				if( empty( $pairs ) ) continue;
+
+				$data[ $product_id ] = $pairs;
+			}
+
+			if( empty( $data ) ){
+				return;
+			}
+
+			// Encode the variations data as JSON
+			$data_json = json_encode($data);
+
+			// Output the data attribute in your form tag
+			?>
+			<div id="svsw_pairs" data-pairs_data="<?php echo esc_attr($data_json); ?>"></div>
+			<?php
+
+		}
+
 	}
 }
 

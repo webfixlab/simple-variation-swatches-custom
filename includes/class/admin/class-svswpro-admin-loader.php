@@ -62,7 +62,7 @@ if ( ! class_exists( 'SVSWProAdminLoader' ) ) {
 
 			include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
-			$plugin = 'simple-variation-swatches-pro/simple-variation-swatches-pro.php';
+			$plugin = 'simple-variation-swatches-custom/simple-variation-swatches-custom.php';
 		
 			// check if Base - SVSW is active
 			$is_base_active = is_plugin_active( 'simple-variation-swatches/simple-variation-swatches.php' );
