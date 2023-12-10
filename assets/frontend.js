@@ -24,20 +24,19 @@
                 }
     
                 var options = $(this).find( '.svsw-swatch' ).length;
-                // if( qty != options ){
-                //     return true;
-                // }
-    
+
                 $(this).find( '.svsw-swatch' ).each(function(){
                     var cls = 'svspro-freeze';
+                    
+                    // If qty == total options, select all options.
                     if( qty == options ){
                         cls = 'svsw-pro-selected';
                     }
+
                     cls += ' svspro-freeze';
+
                     $(this).addClass( cls );
                 });
-    
-                // $( '.svspro-pack-info' ).text( '' )
             });
         }
         function ifPackExists(){
@@ -90,19 +89,38 @@
 
         
         function unselectSizes( item ){
-            var wrap = item.closest( '.svsw-wrap' );
 
+            var term = item.data( 'term' );
+            var att = item.closest( '.svsw-attr-wrap' ).data( 'taxonomy' );
+
+            var wrap = item.closest( '.svsw-wrap' );
             let $pack = wrap.find('.svspro-pack');
+
             if (!$pack.length) {
                 return;
             }
-    
-            let att_name = $pack.data('att');
-            if (!att_name || att_name != 'pa_size' ) {
+
+            if (!att || att != 'pa_size' ) {
                 return;
             }
 
-            wrap.find('.svsw-swatch.svsw-pro-selected').removeClass('svsw-pro-selected');
+            var hasSelection = false;
+
+            item.closest( '.svsw-wrap' ).find( '.svsw-swatch' ).each(function(){
+                var tt = $(this).data( 'term' );
+
+                if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                    hasSelection = true;
+                    if( tt != term ){
+                        $(this).removeClass( 'svsw-pro-selected' );
+                    }
+                }
+            });
+
+            if( hasSelection == false ){
+                // freezeDesigns();
+                $( '.svsw-reset' ).trigger( 'click' );
+            }
 
         }
         function clearFreeze(){
@@ -136,8 +154,8 @@
             $(this).removeClass( 'svsw-stockout' );
             clearFreeze();
         
+            $(this).toggleClass( 'svsw-pro-selected' );
             unselectSizes( $(this) );
-            $(this).toggleClass( 'svsw-pro-selected' );            
         
             multiswatch();
             allowcart();
@@ -465,11 +483,16 @@
 
 
         // Cart section.
-        if( ifCartPackExists() ){
+        if( ifCartPackExists( '' ) ){
             $( '.quantity input[type="number"]' ).prop( 'disabled', true );
         }
 
-        function ifCartPackExists(){
+        function ifCartPackExists( item ){
+            var productId = '';
+
+            if( item.length ){
+                productId = item.data( 'product_id' );
+            }
 
             var data = $( '#svsw_pairs' ).data( 'pairs_data' );
 
@@ -477,18 +500,33 @@
                 return false;
             }
 
-            return true;
+            if( productId.length == 0 ){
+                return true;
+            }
+
+            var found = false;
+
+            $.each(data, function(id, dt ){
+                if( id == productId ){
+                    found = true;
+                }
+            });
+            
+            return found;
         }
 
         $( '.product-remove a.remove' ).on( 'click', function(e) {
-            if( ! ifCartPackExists() ){
+            
+            if( ! ifCartPackExists( $(this) ) ){
                 return;
             }
 
             e.preventDefault();
             e.stopPropagation();
-        
-            var msg = "Removing this may also remove related package items. Proceed to delete?";
+
+            var size = getSizeTerm( $(this) );
+            var msg = "Removing this will remove all (Size - "+ size +") products. Proceed to delete?";
+
             if (confirm(msg)) {
 
                 $( '.woocommerce-notices-wrapper' ).append( '<span calss="svsw-cart-notice">Deleting...</span>' );
@@ -537,6 +575,25 @@
             });
 
             return removeItemKey;
+        }
+        function getSizeTerm( item ){
+
+            var key = cart_item_key( item.attr( 'href' ) );
+            var data = $( '#svsw_pairs' ).data( 'cart_data' );
+
+            var size = '';
+
+            $.each(data, function(ck, dt ){
+                if( ck == key ){
+                    size = dt['variation']['attribute_pa_size'];
+                }
+            });
+
+            if( !size ){
+                size = '';
+            }
+
+            return size;
         }
         
     });

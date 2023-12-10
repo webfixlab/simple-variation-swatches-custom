@@ -277,9 +277,11 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 				return;
 			}
 
-			$data = array();
+			$data      = array();
+			$cart_data = array();
 
 			foreach (WC()->cart->get_cart() as $cart_item) {
+
 				// Get product ID
 				$product_id = $cart_item['product_id'];
 
@@ -288,6 +290,17 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 				if( empty( $pairs ) ) continue;
 
 				$data[ $product_id ] = $pairs;
+
+				$key = $cart_item['key'];
+
+				$cart_data[ $key ] = array(
+					'product_id' => $cart_item['product_id'],
+				);
+				
+				if( isset( $cart_item['variation_id'] ) ){
+					$cart_data[ $key ]['variation_id'] = $cart_item['variation_id'];
+					$cart_data[ $key ]['variation'] = $cart_item['variation'];
+				}
 			}
 
 			if( empty( $data ) ){
@@ -295,11 +308,12 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			}
 
 			// Encode the variations data as JSON
-			$data_json = json_encode($data);
+			$data_json      = json_encode($data);
+			$cart_data_json = json_encode($cart_data);
 
 			// Output the data attribute in your form tag
 			?>
-			<div id="svsw_pairs" data-pairs_data="<?php echo esc_attr($data_json); ?>"></div>
+			<div id="svsw_pairs" data-pairs_data="<?php echo esc_attr($data_json); ?>" data-cart_data="<?php echo esc_attr( $cart_data_json ); ?>"></div>
 			<?php
 
 		}
