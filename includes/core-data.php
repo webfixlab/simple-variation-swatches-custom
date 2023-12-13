@@ -9,7 +9,7 @@ $svsw__ = array(
 
 $svsw__['plugin'] = array(
     'name'          => 'Simple Variation Swatches PRO', // plugin name
-    'version'       => '1.2.2', // current plugin version
+    'version'       => '1.00', // current plugin version
     'wporg_url'     => 'https://webfixlab.com/plugins/simple-variation-swatches-woocommerce/?wporg_url', // Plugin URL | WordPress.org domain
     'review_url'    => 'https://wordpress.org/support/plugin/simple-variation-swatches/reviews/?rate=5#new-post', // URL for posting plugin review | WordPress.org domain
     'request_quote' => 'https://webfixlab.com/contact/', // URL to ask for customization | WebFix Lab.com domain

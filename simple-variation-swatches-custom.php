@@ -4,7 +4,7 @@ Plugin Name: Simple Variation Swatches for WooCommerce Custom
 Description: A truly lightweight EASY to use and super FAST WooCommerce variation swatches solution to replace default variation dropdown with button, color, image & radio button fields.
 Author: WebFix Lab
 Author URI: https://webfixlab.com/
-Version: 1.2.2
+Version: 1.0
 Requires at least: 4.9
 Tested up to: 6.4.1
 Requires PHP: 7.0

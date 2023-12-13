@@ -427,11 +427,12 @@
             e.stopPropagation();
 
             var size = getSizeTerm( $(this) );
-            var msg = "Removing this will remove all (Size - "+ size +") products. Proceed to delete?";
+            // var msg = "It will remove all " + size.toUpperCase() + " size items from the cart. Proceed to delete?";
+            var msg = "It will remove all related items from the cart. Proceed to delete?";
 
             if (confirm(msg)) {
 
-                $( '.woocommerce-notices-wrapper' ).append( '<span calss="svsw-cart-notice">Deleting...</span>' );
+                $( '.woocommerce-notices-wrapper' ).append( '<div calss="svsw-cart-notice"><div class="woocommerce-error" role="alert">Removing all related items...</div></div>' );
                 
                 $( '.product-remove a.remove' ).each(function(){
                     $(this).prop( 'disabled', true );
