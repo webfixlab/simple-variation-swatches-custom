@@ -89,8 +89,8 @@ if ( ! class_exists( 'SVSWProAdminLoader' ) ) {
 			
 			wp_enqueue_style( 'svsw-pro-frontend', plugin_dir_url( SVSWP ) . 'assets/frontend.css', array(), $svsw__['plugin']['version'], 'all' );
 
-			wp_register_script( 'svsw-pro-frontend', plugin_dir_url( SVSWP ) . 'assets/frontend.js', array( 'jquery' ), "1.00", true );
-			wp_enqueue_script( 'svsw-pro-frontend', plugin_dir_url( SVSWP ) . 'assets/frontend.js', array( 'jquery' ), "1.00", true );
+			wp_register_script( 'svsw-pro-frontend', plugin_dir_url( SVSWP ) . 'assets/frontend.js', array( 'jquery' ), "1.01", true );
+			wp_enqueue_script( 'svsw-pro-frontend', plugin_dir_url( SVSWP ) . 'assets/frontend.js', array( 'jquery' ), "1.01", true );
 			
 			// localize script
 			$data = get_option( 'svsw_settings' );
