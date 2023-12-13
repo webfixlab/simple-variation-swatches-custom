@@ -19,6 +19,7 @@
                     if( qty == 5 ){
                         // remove message and pack sub-title.
                         $(this).find( '.svspro-pack' ).html( '' );
+                        $( '.svspro-pack-info' ).html( '' );
                     }
                 });
             }
@@ -306,15 +307,23 @@
                     }
                 });
             });
+
+            if( data['pa_design'] == pa_design ){
+                $('.single_add_to_cart_button').prop('disabled', false);
+            }else{
+                $('.single_add_to_cart_button').prop('disabled', true);
+            }
+
+            if( data.pa_design == 5 ){
+                return;
+            }
             
             if( data['pa_design'] == pa_design ){
                 // allow cart button.
-                $('.single_add_to_cart_button').prop('disabled', false);
                 $('.single_add_to_cart_button').removeClass( 'disabled' );
                 $( '.svspro-pack-info' ).html( '' );
             }else{
                 // disable and show notice.
-                $('.single_add_to_cart_button').prop('disabled', true);
                 $('.single_add_to_cart_button').addClass( 'disabled' );
 
                 if( pa_design > data['pa_design'] ){
@@ -381,7 +390,9 @@
                     });
                 });
 
-                add_to_cart( ids );
+                console.log( ids );
+
+                // add_to_cart( ids );
             }
         });
         function add_to_cart( ids ){
