@@ -87,201 +87,155 @@
             $('#dynamic-price').text(formattedTotal);
         }
 
-        
-        function unselectSizes( item ){
 
-            var term = item.data( 'term' );
-            var att = item.closest( '.svsw-attr-wrap' ).data( 'taxonomy' );
 
-            var wrap = item.closest( '.svsw-wrap' );
-            let $pack = wrap.find('.svspro-pack');
-
-            if (!$pack.length) {
-                return;
-            }
-
-            if (!att || att != 'pa_size' ) {
-                return;
-            }
-
-            var hasSelection = false;
-
-            item.closest( '.svsw-wrap' ).find( '.svsw-swatch' ).each(function(){
-                var tt = $(this).data( 'term' );
-
-                if( $(this).hasClass( 'svsw-pro-selected' ) ){
-                    hasSelection = true;
-                    if( tt != term ){
-                        $(this).removeClass( 'svsw-pro-selected' );
-                    }
-                }
-            });
-
-            if( hasSelection == false ){
-                // freezeDesigns();
-                $( '.svsw-reset' ).trigger( 'click' );
-            }
-
-        }
-        function clearFreeze(){
-            $( '.svsw-wrap' ).each(function(){
-                let $pack = $(this).find('.svspro-pack');
-                if (!$pack.length) {
-                    return true;
-                }
-        
-                let att = $pack.data( 'att' );
-                let qty = parseInt($pack.data( 'qty' ), 10);
-                if (!qty || !att || att == 'pa_size' ) {
-                    return true;
-                }
-
-                $(this).find( '.svsw-swatch' ).each(function(){
-                    $(this).removeClass( 'svspro-freeze' );
-                });
-            });
-        }
-        
         $( '.svsw-swatch' ).on( 'click', function(e){
             $(this).closest('.svsw-wrap').find('.svsw-swatch.svsw-selected').removeClass('svsw-selected');
 
-            if( $(this).hasClass( 'svspro-freeze' ) || $(this).hasClass( 'svsw-stockout' ) ){
-                return;
+            if( ! $(this).hasClass( 'svspro-freeze' ) && ! $(this).hasClass( 'svsw-stockout' ) ){
+                $(this).toggleClass( 'svsw-pro-selected' );
+            }
+            
+            swatchClickEvent( $(this) );
+        });
+        function swatchClickEvent( swatch ){
+            var option    = swatch.data( 'term' );
+            var att_name  = swatch.closest( '.svsw-attr-wrap' ).data( 'taxonomy' );
+            
+            // unselect all other sizes
+            if( att_name == 'pa_size' ){
+                unselectOtherSizes( swatch );
+                attributesAction( 'pa_size', 'enable' );
             }
 
-            preCheckStock( $(this) );
-            
-            $(this).removeClass( 'svsw-stockout' );
-            clearFreeze();
-        
-            $(this).toggleClass( 'svsw-pro-selected' );
-            unselectSizes( $(this) );
-        
-            multiswatch();
-            allowcart();
-        });
+            $( '.svsw-frontend-wrap' ).each(function(){
+                // total wrapper
 
-        function preCheckStock( swatch ){
-            // Runs on focusing single given swatch.
-            var term = swatch.data( 'term' );
-            var att_name = swatch.closest( '.svsw-attr-wrap' ).data( 'taxonomy' );
-            if( ! att_name ){
+                var attCounter = {};
+                var data = { pa_size: 0, pa_design: 0 };
+                var attSelection = {};
+
+                $( '.svsw-wrap' ).each(function(){
+                    // attribute wrapper
+
+                    var att = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );
+                    attCounter[att] = 0;
+                    data[att] = getPairsData( $(this) );
+                    attSelection[att] = [];
+                    
+                    $(this).find( '.svsw-swatch' ).each(function(){
+                        // option/swatch item
+
+                        var term   = $(this).data( 'term' );
+                        if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                            attCounter[att]++;
+                            attSelection[att].push( term );
+                        }
+                    });
+                });
+
+                // disable other options
+                if( attCounter['pa_size'] == 0 ){
+                    attributesAction( 'pa_size', 'disable' );
+                }
+                
+                cartValidation( data, attCounter );
+                handleStockandTotal( attSelection, data, attCounter );
+            });
+        }
+        function getPairsData( wrap ){
+            let $pack = wrap.find('.svspro-pack');
+            if (!$pack.length) {
+                return true;
+            }
+
+            return parseInt( $pack.data( 'qty' ) );
+        }
+        function unselectOtherSizes( swatch ){
+            var givenTerm = swatch.data( 'term' );
+
+            swatch.closest( '.svsw-wrap' ).find( '.svsw-swatch' ).each(function(){
+                var term = $(this).data( 'term' );
+                if( term != givenTerm && $(this).hasClass( 'svsw-pro-selected' ) ){
+                    $(this).removeClass( 'svsw-pro-selected' );
+                }
+            });
+        }
+        function attributesAction( skipAtt, action ){
+            if( action == 'disable' ){
+                $( '.svsw-reset' ).trigger( 'click' );
                 return;
             }
 
             $( '.svsw-wrap' ).each(function(){
-                let $pack = $(this).find('.svspro-pack');
-                if (!$pack.length) {
-                    return true;
-                }
-        
-                let att = $pack.data( 'att' );
-                let qty = parseInt($pack.data( 'qty' ), 10);
-                if (!qty || !att || att == att_name ) {
+                var att  = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );                
+                if( att == skipAtt ){
                     return true;
                 }
 
                 $(this).find( '.svsw-swatch' ).each(function(){
-                    var tmpTerm = $(this).data( 'term' );
-
-                    var data = {};
-                    data[ att ] = tmpTerm;
-                    data[ att_name ] = term;
-
-                    var item = isCombinationInStock( data, 'variation_id' );
-
-                    if( ! item || '0' == item ){
-                        // Not in stock
-                        if( ! $(this).hasClass( 'svsw-stockout' ) ){
-                            $(this).addClass( 'svsw-stockout' );
-                        }
-                        if( $(this).hasClass( 'svsw-pro-selected' ) ){
-                            $( this ).removeClass( 'svsw-pro-selected' );
-                        }
-                    }else{
-                        // In stock
-                        if( $(this).hasClass( 'svsw-stockout' ) ){
-                            $(this).removeClass( 'svsw-stockout' );
+                    if( action == 'enable' ){
+                        if( $(this).hasClass( 'svspro-freeze' ) ){
+                            $(this).removeClass( 'svspro-freeze' );
                         }
                     }
                 });
             });
-
         }
+        function cartValidation( data, attCounter ){
+            if( data['pa_design'] == attCounter['pa_design'] ){
+                // allow cart button.
+                $('.single_add_to_cart_button').prop('disabled', false);
+                $( '.svspro-pack-info' ).html( '' );
+            }else{
+                // disable and show notice.
+                $('.single_add_to_cart_button').prop('disabled', true);
 
-        
-
-        function multiswatch(){
-            var prices = process_data( 'price', false );
+                if( attCounter['pa_design'] > data['pa_design'] ){
+                    $( '.svspro-pack-info' ).html( 'You selected more than ' + data['pa_design'] + ' Designs.' );
+                }else{
+                    $( '.svspro-pack-info' ).html( 'Please choose ' + data['pa_design'] + ' Designs before adding it to cart.' );
+                }
+            }
+        }
+        function handleStockandTotal( attSelection, data, attCounter ){
             var total = 0.0;
+            var attributes = {
+                pa_size: attSelection['pa_size'].toString(),
+                pa_design: ''
+            };
 
-            prices.forEach(function(price) {
-                total += price;
-            });
-
-            $( '#dynamic-price' ).attr( 'data-price', total.toString() );
-            
-            var qty = parseInt( $( 'input[name="quantity"]' ).val() );
-            var finalTotal = total * qty;
-
-            $( '#dynamic-price' ).text( parseFloat( finalTotal ).toFixed(2) );
-        }
-        function process_data( focus, onlyStockIn ){
-
-            // get attribute data.
-            var data = {};
             $( '.svsw-wrap' ).each(function(){
-                var wrap = $(this).find( '.svsw-attr-wrap' );
-                var key = wrap.data( 'taxonomy' );
-
-                if( ! key ){
+                var att = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );
+                if( att == 'pa_size' ){
                     return true;
                 }
+                
+                $(this).find( '.svsw-swatch' ).each(function(){
+                    var term   = $(this).data( 'term' );
+                    attributes.pa_design = term;
 
-                data[key] = [];
+                    var variation = getVariationData( attributes );
 
-                wrap.find( '.svsw-swatch-content' ).each(function(){
-                    var swatch = $(this).find( '.svsw-swatch' );
-
-                    if( ! swatch.hasClass( 'svsw-pro-selected' ) ){
-                        return true;
+                    if( checkIsInStock( variation ) ){
+                        if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                            total += variation.display_price;
+                        }
+                        attributesStockMaker( $(this), true );
+                    }else{
+                        attributesStockMaker( $(this), false );
                     }
-                    
-                    if( onlyStockIn && swatch.hasClass( 'svsw-stockout' ) ){
-                        return true;
-                    }
-
-                    data[key].push( swatch.data( 'term' ) );
                 });
             });
 
-            if( data.length === 0 ){
-                return;
-            }
-
-            var combinations = generateCombinations(data);
-
-            var items = [];
-
-            combinations.forEach(function(combination) {
-                var item = isCombinationInStock( combination, focus );
-                items.push( item );
-            });
-
-            return items;
-
+            swatchClickedTotal( total );
         }
+        function getVariationData( attributes ){
+            var data = $('#svsw_variation_data').data('product_variations');
 
-        var variationsData = $('#svsw_variation_data').data('product_variations');
-
-        function isCombinationInStock( attributes, focus ) {
-
-            var is_in_stock = false;
-            var focusItem = 0.0;
-
-            for (var i = 0; i < variationsData.length; i++) {
-                var variation = variationsData[i];
-                var match = true;
+            for (var i = 0; i < data.length; i++) {
+                var variation = data[i];
+                var found = true;
 
                 // Check if all attributes match
                 for (var key in attributes) {
@@ -291,138 +245,56 @@
 
                         // Check if the attribute value matches
                         if (variation.attributes[attributeKey].toString() !== attributes[key].toString()) {
-                            match = false;
+                            found = false;
                             break;
                         }
-                        
                     }
                 }
         
-                if (match) {
-                    is_in_stock = variation.is_in_stock;
-
-                    // quantity check.
-                    var qty = parseInt( $( 'input[name="quantity"]' ).val() );
-
-                    if( typeof qty != 'undefined' && typeof variation.max_qty == 'number' ){
-                        if( qty > variation.max_qty ){
-                            is_in_stock = false;
-                        }
-                    }
-
-                    if( is_in_stock ){
-                        if( focus == 'price' ){
-                            focusItem = variation.display_price;
-                        }else if( focus == 'variation_id' ){
-                            focusItem = variation.variation_id;
-                        }
-                    }
-
-                    break;
+                if( found ){
+                    return variation;
                 }
+
             }
 
-            stockoutmark( attributes, is_in_stock );
-        
-            return focusItem; // If no match is found
+            return false;
         }
-        function stockoutmark( attributues, is_in_stock ){
-            $( '.svsw-wrap' ).each(function(){
-                var wrap = $(this).find( '.svsw-attr-wrap' );
-                var key = wrap.data( 'taxonomy' );
+        function checkIsInStock( variation ){
+            if( variation === false || ! variation.is_in_stock ){
+                return false;
+            }
 
-                if( ! key || typeof attributues[ key ] == 'undefined' ){
-                    return true;
+            var qty = parseInt( $( 'input[name="quantity"]' ).val() );
+            
+            if( variation.max_qty && qty <= variation.max_qty ){
+                return true;
+            }
+
+            return false;
+        }
+        function attributesStockMaker( swatch, ifInStock ){
+            if( ifInStock ){
+                if( swatch.hasClass( 'svsw-stockout') ){
+                    swatch.removeClass( 'svsw-stockout' );
                 }
-
-                wrap.find( '.svsw-swatch-content' ).each(function(){
-                    var swatch = $(this).find( '.svsw-swatch' );
-
-                    if( swatch.data( 'term' ) == attributues[ key ] ){
-
-                        if( is_in_stock == false ){
-
-                            if( ! swatch.hasClass( 'svsw-stockout' ) ){
-                                swatch.addClass( 'svsw-stockout' );
-                            }
-
-                        }else{
-                            swatch.removeClass( 'svsw-stockout' );
-                        }
-                    }
-                });
-            });
-        }
-        function generateCombinations(attributes) {
-            var keys = Object.keys(attributes);
-            var results = [];
-            var result = {};
-        
-            function recurse(index) {
-                var key = keys[index];
-                var values = attributes[key];
-        
-                for (var i = 0; i < values.length; i++) {
-                    result[key] = values[i];
-        
-                    if (index + 1 < keys.length) {
-                        recurse(index + 1);
-                    } else {
-                        // Push a copy of result to results
-                        results.push(JSON.parse(JSON.stringify(result)));
-                    }
+            }else{
+                if( ! swatch.hasClass( 'svsw-stockout') ){
+                    swatch.addClass( 'svsw-stockout' );
+                }
+                if( swatch.hasClass( 'svsw-pro-selected') ){
+                    swatch.removeClass( 'svsw-pro-selected' );
                 }
             }
-        
-            recurse(0);
-            return results;
         }
-        function allowcart() {
-            $('.svsw-wrap').each(function() {
-                let $pack = $(this).find('.svspro-pack');
-                if (!$pack.length) {
-                    return true;
-                }
-        
-                let qty = parseInt($pack.data('qty'), 10);
-                if (!qty) {
-                    return true;
-                }
+        function swatchClickedTotal( total ){
+            $( '#dynamic-price' ).attr( 'data-price', total.toString() );
+            
+            var qty = parseInt( $( 'input[name="quantity"]' ).val() );
+            var finalTotal = total * qty;
 
-                let $wrap = $(this).find('.svsw-attr-wrap');
-                let checked = 0;
-        
-                $wrap.find('.svsw-swatch-content').each(function() {
-                    let $swatch = $(this).find('.svsw-swatch');
-                    if ($swatch.hasClass('svsw-pro-selected') && !$swatch.hasClass('svsw-stockout')) {
-                        checked++;
-                    }
-                });
-        
-                if (checked != qty) {
-                    $('.single_add_to_cart_button').prop('disabled', true);
-
-                    var element = $(this).find( '.attr-name' );
-                    var span = element.find("span").detach(); // Detach the span element
-                    var text = element.text().trim(); // Get the trimmed text of the element without the span
-                    element.append(span); // Reattach the span element
-
-                    var msg = '';
-                    if( checked < qty ){
-                        msg = 'Please choose ' + qty + ' ' + text + ' before adding it to cart.';
-                    }else if( checked > qty ){
-                        msg = 'You selected more than ' + qty + ' ' + text + '.';
-                    }
-
-                    $( '.svspro-pack-info' ).html( msg );
-                    return;
-                }
-                
-                $( '.svspro-pack-info' ).html( '' );
-                $('.single_add_to_cart_button').prop('disabled', false);
-            });
-        
+            $( '#dynamic-price' ).text( parseFloat( finalTotal ).toFixed(2) );
         }
+
 
 
         $( 'body' ).on( 'click', '.svsw-reset', function(e){
@@ -430,7 +302,7 @@
             $('.svsw-swatch.svsw-pro-selected').removeClass('svsw-pro-selected');
             $('.svsw-swatch.svsw-stockout').removeClass('svsw-stockout');
 
-            $( '#dynamic-price' ).text( '0.0' );
+            $( '#dynamic-price' ).text( '0.00' );
             $( '#dynamic-price' ).data( 'price', '0' );
 
             $( 'input[name="quantity"]').val( 1 );
@@ -439,17 +311,48 @@
             $( document ).find( '.svspro-cart-added' ).remove();
 
             freezeDesigns();
-        });
-        
+        }); 
         $( '.single_add_to_cart_button' ).on( 'click', function(e){
-            
             if( ifPackExists() ){
                 e.preventDefault();
-    
-                var variation_ids = process_data( 'variation_id', true );
-                add_to_cart( variation_ids );
-            }
 
+                var ids = []; // get all selected variation ids.
+                var attributes = { pa_size: '', pa_design: '' };
+
+                $( '.svsw-wrap' ).each(function(){
+                    var att = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );
+                    $(this).find( '.svsw-swatch' ).each(function(){
+                        var term   = $(this).data( 'term' );
+                        if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                            attributes[ att ] = term;
+                        }
+                    });
+                });
+
+                $( '.svsw-wrap' ).each(function(){
+                    var att = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );
+                    if( att == 'pa_size' ){
+                        return true;
+                    }
+                    
+                    $(this).find( '.svsw-swatch' ).each(function(){
+                        if( ! $(this).hasClass( 'svsw-pro-selected' ) ){
+                            return true;
+                        }
+                        
+                        var term = $(this).data( 'term' );
+                        attributes[ att ] = term;
+
+                        var variation = getVariationData( attributes );
+
+                        if( variation !== false ){
+                            ids.push( variation.variation_id );
+                        }
+                    });
+                });
+
+                add_to_cart( ids );
+            }
         });
         function add_to_cart( ids ){
             var qty = $( 'input[name="quantity"]' ).val();
@@ -486,7 +389,6 @@
         if( ifCartPackExists( '' ) ){
             $( '.quantity input[type="number"]' ).prop( 'disabled', true );
         }
-
         function ifCartPackExists( item ){
             var productId = '';
 
