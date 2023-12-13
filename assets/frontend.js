@@ -390,9 +390,7 @@
                     });
                 });
 
-                console.log( ids );
-
-                // add_to_cart( ids );
+                add_to_cart( ids );
             }
         });
         function add_to_cart( ids ){
