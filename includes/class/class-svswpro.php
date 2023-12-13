@@ -26,6 +26,7 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			add_action( 'wp_ajax_nopriv_svsw_clear_cart', array( $this, 'clear_cart' ) );
 
 			add_action( 'woocommerce_before_cart', array( $this, 'cart_pairs_data' ) );
+			// add_filter( 'woocommerce_cart_item_quantity', array( $this, 'disable_quantity' ), 10, 2 );
 
 		}
 
@@ -316,6 +317,19 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			<div id="svsw_pairs" data-pairs_data="<?php echo esc_attr($data_json); ?>" data-cart_data="<?php echo esc_attr( $cart_data_json ); ?>"></div>
 			<?php
 
+		}
+		public function disable_quantity( $quantity, $cart_item_key ) {
+			$cart = WC()->cart->get_cart();
+			$cart_item = $cart[$cart_item_key];
+			$product_id = $cart_item['product_id'];
+
+			$pairs = get_post_meta( $product_id, '_swatch_attribute_quantity_pairs', true ) ? : array();
+
+			if( empty( $pairs ) ){
+				return $quantity;
+			}
+			
+			return sprintf( '<div class="quantity"><input type="number" class="input-text qty text" step="1" min="1" max="" name="cart[%s][qty]" value="%s" title="Qty" size="4" inputmode="numeric" readonly style="pointer-events: none;"/></div>', $cart_item_key, $cart_item['quantity'] );
 		}
 
 	}
