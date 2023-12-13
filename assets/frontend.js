@@ -8,6 +8,19 @@
         function onLoadStuffs(){
             if( ifPackExists() ){
                 $( '.single_add_to_cart_button' ).prop( 'disabled', true );
+
+                $( '.svsw-wrap' ).each(function(){
+                    var att = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );
+                    if( att == 'pa_size' ){
+                        return true;
+                    }
+
+                    var qty = getPairsData( $(this) );
+                    if( qty == 5 ){
+                        // remove message and pack sub-title.
+                        $(this).find( '.svspro-pack' ).html( '' );
+                    }
+                });
             }
         }
         function freezeDesigns(){  
@@ -139,8 +152,8 @@
                     attributesAction( 'pa_size', 'disable' );
                 }
                 
-                cartValidation( data, attCounter );
                 handleStockandTotal( attSelection, data, attCounter );
+                cartValidation( data );
             });
         }
         function getPairsData( wrap ){
@@ -182,22 +195,6 @@
                 });
             });
         }
-        function cartValidation( data, attCounter ){
-            if( data['pa_design'] == attCounter['pa_design'] ){
-                // allow cart button.
-                $('.single_add_to_cart_button').prop('disabled', false);
-                $( '.svspro-pack-info' ).html( '' );
-            }else{
-                // disable and show notice.
-                $('.single_add_to_cart_button').prop('disabled', true);
-
-                if( attCounter['pa_design'] > data['pa_design'] ){
-                    $( '.svspro-pack-info' ).html( 'You selected more than ' + data['pa_design'] + ' Designs.' );
-                }else{
-                    $( '.svspro-pack-info' ).html( 'Please choose ' + data['pa_design'] + ' Designs before adding it to cart.' );
-                }
-            }
-        }
         function handleStockandTotal( attSelection, data, attCounter ){
             var total = 0.0;
             var attributes = {
@@ -218,12 +215,12 @@
                     var variation = getVariationData( attributes );
 
                     if( checkIsInStock( variation ) ){
-                        if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                        if( $(this).hasClass( 'svsw-pro-selected' ) || data.pa_design == 5 ){
                             total += variation.display_price;
                         }
-                        attributesStockMaker( $(this), true );
+                        attributesStockMaker( $(this), true, data );
                     }else{
-                        attributesStockMaker( $(this), false );
+                        attributesStockMaker( $(this), false, data );
                     }
                 });
             });
@@ -237,14 +234,11 @@
                 var variation = data[i];
                 var found = true;
 
-                // Check if all attributes match
                 for (var key in attributes) {
                     if (attributes.hasOwnProperty(key)) {
-                        // Construct the attribute name as it appears in the variation data
-                        var attributeKey = 'attribute_' + key;
+                        var option = variation.attributes[ 'attribute_' + key ];
 
-                        // Check if the attribute value matches
-                        if (variation.attributes[attributeKey].toString() !== attributes[key].toString()) {
+                        if ( option.length > 0 && option.toString() !== attributes[key].toString()) {
                             found = false;
                             break;
                         }
@@ -263,19 +257,22 @@
             if( variation === false || ! variation.is_in_stock ){
                 return false;
             }
-
+            
             var qty = parseInt( $( 'input[name="quantity"]' ).val() );
             
-            if( variation.max_qty && qty <= variation.max_qty ){
-                return true;
+            if( variation.max_qty && qty > variation.max_qty ){
+                return false;
             }
-
-            return false;
+            
+            return true;
         }
-        function attributesStockMaker( swatch, ifInStock ){
+        function attributesStockMaker( swatch, ifInStock, data ){
             if( ifInStock ){
                 if( swatch.hasClass( 'svsw-stockout') ){
                     swatch.removeClass( 'svsw-stockout' );
+                }
+                if( data.pa_design == 5 && ! swatch.hasClass( 'svsw-pro-selected' ) ){
+                    swatch.addClass( 'svsw-pro-selected' );
                 }
             }else{
                 if( ! swatch.hasClass( 'svsw-stockout') ){
@@ -293,6 +290,39 @@
             var finalTotal = total * qty;
 
             $( '#dynamic-price' ).text( parseFloat( finalTotal ).toFixed(2) );
+        }
+        function cartValidation( data ){
+
+            var pa_design = 0;
+            $( '.svsw-wrap' ).each(function(){
+                var att = $(this).find( '.svsw-attr-wrap' ).data( 'taxonomy' );
+                if( att == 'pa_size' ){
+                    return true;
+                }
+                
+                $(this).find( '.svsw-swatch' ).each(function(){
+                    if( $(this).hasClass( 'svsw-pro-selected' ) ){
+                        pa_design++;
+                    }
+                });
+            });
+            
+            if( data['pa_design'] == pa_design ){
+                // allow cart button.
+                $('.single_add_to_cart_button').prop('disabled', false);
+                $('.single_add_to_cart_button').removeClass( 'disabled' );
+                $( '.svspro-pack-info' ).html( '' );
+            }else{
+                // disable and show notice.
+                $('.single_add_to_cart_button').prop('disabled', true);
+                $('.single_add_to_cart_button').addClass( 'disabled' );
+
+                if( pa_design > data['pa_design'] ){
+                    $( '.svspro-pack-info' ).html( 'You selected more than ' + data['pa_design'] + ' Designs.' );
+                }else{
+                    $( '.svspro-pack-info' ).html( 'Please choose ' + data['pa_design'] + ' Designs before adding it to cart.' );
+                }
+            }
         }
 
 
