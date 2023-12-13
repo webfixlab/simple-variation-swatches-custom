@@ -26,7 +26,7 @@ if ( ! class_exists( 'SVSWPro' ) ) {
 			add_action( 'wp_ajax_nopriv_svsw_clear_cart', array( $this, 'clear_cart' ) );
 
 			add_action( 'woocommerce_before_cart', array( $this, 'cart_pairs_data' ) );
-			// add_filter( 'woocommerce_cart_item_quantity', array( $this, 'disable_quantity' ), 10, 2 );
+			add_filter( 'woocommerce_cart_item_quantity', array( $this, 'disable_quantity' ), 10, 2 );
 
 		}
 
