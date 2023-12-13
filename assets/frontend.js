@@ -310,8 +310,10 @@
 
             if( data['pa_design'] == pa_design ){
                 $('.single_add_to_cart_button').prop('disabled', false);
+                $('.single_add_to_cart_button').removeClass( 'disabled' );
             }else{
                 $('.single_add_to_cart_button').prop('disabled', true);
+                $('.single_add_to_cart_button').addClass( 'disabled' );
             }
 
             if( data.pa_design == 5 ){
@@ -320,11 +322,9 @@
             
             if( data['pa_design'] == pa_design ){
                 // allow cart button.
-                $('.single_add_to_cart_button').removeClass( 'disabled' );
                 $( '.svspro-pack-info' ).html( '' );
             }else{
                 // disable and show notice.
-                $('.single_add_to_cart_button').addClass( 'disabled' );
 
                 if( pa_design > data['pa_design'] ){
                     $( '.svspro-pack-info' ).html( 'You selected more than ' + data['pa_design'] + ' Designs.' );
